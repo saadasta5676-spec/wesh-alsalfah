@@ -1,0 +1,21 @@
+name: Import RSS to review queue
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call RSS importer
+        env:
+          SUPABASE_FUNCTION_URL: ${{ secrets.SUPABASE_FUNCTION_URL }}
+          RSS_CRON_SECRET: ${{ secrets.RSS_CRON_SECRET }}
+        run: |
+          test -n "$SUPABASE_FUNCTION_URL"
+          test -n "$RSS_CRON_SECRET"
+          curl --fail-with-body --silent --show-error \
+            -X POST "$SUPABASE_FUNCTION_URL" \
+            -H "x-cron-secret: $RSS_CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d '{}'
