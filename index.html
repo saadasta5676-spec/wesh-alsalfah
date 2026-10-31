@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e32636">
+  <meta name="description" content="وش السالفة؟ — آخر الأخبار والترندات من السعودية والعالم.">
+  <title>وش السالفة؟ | الأخبار والترندات</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="top-strip"><div class="container top-strip-inner"><span>من هنا تعرف وش السالفة أول بأول</span><span id="today-date"></span></div></div>
+  <header class="site-header"><div class="container header-inner">
+    <a class="brand" href="#"><span class="brand-mark">؟</span><span class="brand-copy"><strong>وش <b>السالفة؟</b></strong><small>الخبر من قلب الحدث.. وباختصار</small></span></a>
+    <div class="header-actions">
+      <form id="search-form" class="search-form"><input id="search-input" type="search" placeholder="ابحث عن سالفة..." aria-label="ابحث"><button type="submit">⌕</button></form>
+      <button id="theme-toggle" class="icon-button" type="button" aria-label="الوضع الليلي">☾</button>
+      <button id="menu-toggle" class="icon-button menu-toggle" type="button" aria-label="القائمة">☰</button>
+    </div>
+  </div></header>
+  <nav class="main-nav" id="main-nav"><div class="container nav-inner">
+    <a class="nav-link active" href="#" data-category="الكل">الرئيسية</a>
+    <a class="nav-link" href="#category/عاجل" data-category="عاجل">عاجل</a>
+    <a class="nav-link" href="#category/السعودية" data-category="السعودية">السعودية</a>
+    <a class="nav-link" href="#category/ترند" data-category="ترند">ترند الآن</a>
+    <a class="nav-link" href="#category/العالم" data-category="العالم">العالم</a>
+    <a class="nav-link" href="#category/تقنية" data-category="تقنية">تقنية</a>
+    <a class="nav-link" href="#category/رياضة" data-category="رياضة">رياضة</a>
+    <a class="nav-link" href="#category/ترفيه" data-category="ترفيه">ترفيه</a>
+    <a class="nav-link" href="#category/اقتصاد" data-category="اقتصاد">اقتصاد</a>
+  </div></nav>
+  <main class="container">
+    <section class="breaking-bar"><span class="breaking-label"><i></i> آخر السوالف</span><p id="ticker-text">أبرز الأخبار المنشورة بعد مراجعتها التحريرية.</p><a href="#category/عاجل" class="ticker-more">كل الأخبار ←</a></section>
+    <section class="hero-section"><div class="section-heading"><div><span class="eyebrow">خلّك بالصورة</span><h1>وش السالفة اليوم؟</h1></div><span class="live-indicator"><i></i> تحديثات الموقع</span></div><div class="hero-grid" id="hero-grid"></div></section>
+    <section class="trending-section"><div class="section-heading compact"><h2 class="section-title"><span class="title-mark">🔥</span> ترند الآن</h2><a href="#category/ترند" class="text-link">عرض الكل ←</a></div><div class="trend-chips" id="trend-chips"></div></section>
+    <div class="content-layout">
+      <section class="news-column"><div class="section-heading compact"><div><span class="eyebrow" id="feed-eyebrow">آخر التحديثات</span><h2 class="section-title" id="feed-title">أحدث الأخبار</h2></div><span class="results-count" id="results-count"></span></div><div class="news-grid" id="news-grid"></div>
+      <div class="empty-state hidden" id="empty-state"><span>🔎</span><h3>ما لقينا نتائج</h3><p>جرّب كلمة بحث ثانية أو اختر قسماً مختلفاً.</p><button class="button button-outline" id="reset-filter">عرض كل الأخبار</button></div></section>
+      <aside class="sidebar">
+        <section class="side-card"><div class="side-title"><h2>الأكثر قراءة</h2><span>الأخبار المنشورة</span></div><ol class="popular-list" id="popular-list"></ol></section>
+        <section class="side-card newsletter-card"><span class="newsletter-icon">✉</span><h2>لا تفوت السالفة</h2><p>تابع جديد الأخبار والترندات أول بأول.</p><a class="button button-primary button-full" href="mailto:hello@example.com">تواصل معنا</a></section>
+        <section class="side-card about-card"><h2>وش السالفة؟</h2><p>منصة تجمع لك أبرز ما يحدث، وتقرّب لك الصورة بدون تعقيد.</p><a href="#about" class="text-link">اعرف أكثر ←</a></section>
+      </aside>
+    </div>
+  </main>
+  <footer class="site-footer" id="about"><div class="container footer-grid">
+    <div class="footer-about"><a class="brand footer-brand" href="#"><span class="brand-mark">؟</span><span class="brand-copy"><strong>وش <b>السالفة؟</b></strong><small>الخبر من قلب الحدث.. وباختصار</small></span></a><p>نقرّب لك الصورة ونلخّص لك أبرز ما يحدث.</p></div>
+    <div><h3>الأقسام</h3><div class="footer-links"><a href="#category/السعودية">السعودية</a><a href="#category/العالم">العالم</a><a href="#category/تقنية">تقنية</a><a href="#category/رياضة">رياضة</a></div></div>
+    <div><h3>الإدارة</h3><div class="footer-links"><a href="admin.html">دخول لوحة التحكم</a><a href="mailto:hello@example.com">اتصل بنا</a></div></div>
+  </div><div class="container copyright">© <span id="year"></span> وش السالفة؟ — جميع الحقوق محفوظة</div></footer>
+  <dialog id="article-dialog" class="article-dialog"><button class="dialog-close" id="dialog-close" aria-label="إغلاق">×</button><article id="article-content"></article></dialog>
+  <script src="config.js"></script><script src="app.js"></script>
+</body></html>

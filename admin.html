@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#e32636"><title>لوحة التحكم | وش السالفة؟</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="admin.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<body class="admin-body"><header class="admin-header"><div class="container admin-header-inner"><a class="brand" href="index.html"><span class="brand-mark">؟</span><span class="brand-copy"><strong>وش <b>السالفة؟</b></strong><small>لوحة إدارة الأخبار</small></span></a><div><a class="button button-outline" href="index.html">عرض الموقع</a><button class="button button-primary hidden" id="logout-btn">تسجيل الخروج</button></div></div></header>
+<main class="container admin-main">
+<section id="setup-warning" class="admin-panel hidden"><h1>أكمل إعداد قاعدة البيانات أولاً</h1><p>أضف رابط Supabase ومفتاح anon في ملف config.js، ثم نفّذ ملف supabase/schema.sql في SQL Editor وأنشئ مستخدم المدير من Authentication.</p><a class="button button-primary" href="README.md">افتح دليل الإعداد</a></section>
+<section id="login-panel" class="admin-panel auth-panel hidden"><span class="eyebrow">منطقة الإدارة</span><h1>تسجيل الدخول</h1><p>هذه اللوحة مخصصة لمحرري موقع وش السالفة؟</p><form id="login-form"><label>البريد الإلكتروني<input type="email" id="email" required autocomplete="username"></label><label>كلمة المرور<input type="password" id="password" required autocomplete="current-password"></label><button class="button button-primary button-full" type="submit">دخول لوحة التحكم</button><p class="form-message" id="login-message"></p></form></section>
+<section id="dashboard" class="hidden">
+<div class="admin-title-row"><div><span class="eyebrow">إدارة المحتوى</span><h1>لوحة التحكم</h1><p>راجع الأخبار الواردة، حرّرها، ثم انشر المناسب منها.</p></div><button class="button button-primary" id="new-article">＋ خبر جديد</button></div>
+<div class="stats-grid"><div class="stat-card"><span>بانتظار المراجعة</span><strong id="pending-count">0</strong></div><div class="stat-card"><span>منشور</span><strong id="published-count">0</strong></div><div class="stat-card"><span>مسودات / مرفوض</span><strong id="other-count">0</strong></div></div>
+<div class="admin-tabs"><button class="active" data-status="pending">بانتظار المراجعة</button><button data-status="published">المنشورة</button><button data-status="draft">المسودات</button><button data-status="rejected">المرفوضة</button><button data-status="all">الكل</button></div>
+<div id="admin-list" class="admin-list"></div>
+</section>
+</main>
+<dialog id="edit-dialog" class="edit-dialog"><form id="article-form" class="edit-form"><div class="dialog-heading"><h2 id="form-heading">إضافة خبر</h2><button type="button" id="close-editor" class="icon-button">×</button></div><input type="hidden" id="article-id">
+<label>عنوان الخبر<input id="article-title" required maxlength="180"></label>
+<div class="form-row"><label>القسم<select id="article-category"><option>عاجل</option><option>السعودية</option><option>ترند</option><option>العالم</option><option>تقنية</option><option>رياضة</option><option>ترفيه</option><option>اقتصاد</option><option>منوعات</option></select></label><label>اسم الكاتب<input id="article-author" value="فريق التحرير"></label></div>
+<label>رابط الصورة<input id="article-image" type="url" placeholder="https://..."></label>
+<label>ملخص الخبر<textarea id="article-excerpt" rows="3"></textarea></label>
+<label>نص الخبر<textarea id="article-body" rows="8" required></textarea></label>
+<label class="check-label"><input id="article-featured" type="checkbox"> عرض في الواجهة الرئيسية</label>
+<div class="editor-actions"><button class="button button-outline" type="button" id="save-draft">حفظ كمسودة</button><button class="button button-primary" type="submit">حفظ ونشر</button></div><p class="form-message" id="editor-message"></p></form></dialog>
+<script src="config.js"></script><script src="admin.js"></script></body></html>
