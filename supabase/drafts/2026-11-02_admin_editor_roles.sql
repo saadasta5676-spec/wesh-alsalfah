@@ -123,6 +123,29 @@ begin
 end
 $preflight_grants$;
 
+-- Column-level grants were not included in the supplied live audit.
+-- Stop if any exist for PUBLIC/anon/authenticated instead of assuming the
+-- table-level snapshot captures them.
+do $preflight_column_grants$
+declare
+  c record;
+begin
+  select grantee, table_name, column_name, privilege_type
+    into c
+  from information_schema.role_column_grants
+  where table_schema = 'public'
+    and table_name = 'articles'
+    and grantee in ('PUBLIC', 'anon', 'authenticated')
+  limit 1;
+
+  if found then
+    raise exception
+      'Unexpected column-level grant on public.articles: grantee=%, column=%, privilege=%. Review column ACLs before applying.',
+      c.grantee, c.column_name, c.privilege_type;
+  end if;
+end
+$preflight_column_grants$;
+
 -- Least privilege for the public-facing article table.
 -- anon: read only; the existing SELECT RLS policy limits this to published rows.
 -- authenticated: read/write operations; RLS below limits DELETE to admins.
