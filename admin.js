@@ -31,7 +31,7 @@
       el.setAttribute("aria-disabled", "true");
       el.title = "وظائف المحتوى ستُفعّل بعد ربط عمليات الإدارة الآمنة";
     });
-    const notice = document.querySelector('[role="status"]');
+    const notice = document.querySelector('#dashboard [role="status"]');
     if (notice) {
       notice.innerHTML = "<h2>تم التحقق من حسابك</h2><p>الدخول الإداري محمي بالمصادقة الثنائية. عمليات المحتوى ما زالت معطلة إلى أن تُربط بواجهات الإدارة وتُختبر.</p>";
     }
@@ -131,7 +131,7 @@
         if (error) throw error;
         await afterPasswordLogin();
       } catch (error) {
-        message(error.message || "تعذّر تسجيل الدخول.", true);
+        await signOut(error.message || "تعذّر تسجيل الدخول.");
       }
     });
     $("#verify-enroll").addEventListener("click", async () => {
