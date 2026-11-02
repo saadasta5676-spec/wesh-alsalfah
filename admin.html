@@ -5,17 +5,18 @@
 <title>لوحة التحكم | وش السالفة؟</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="admin.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 <body class="admin-body">
 <header class="admin-header"><div class="admin-header-inner">
 <a class="brand" href="index.html"><span class="brand-mark">؟</span><span class="brand-copy"><strong>وش <b>السالفة؟</b></strong><small>مركز إدارة الموقع</small></span></a>
-<div class="admin-header-actions"><a class="button button-outline" href="index.html">عرض الموقع ↗</a><button class="button button-primary hidden" id="logout-btn">تسجيل الخروج</button></div>
+<div class="admin-header-actions"><a class="button button-outline" href="index.html">عرض الموقع ↗</a></div>
 </div></header>
 <main class="admin-main">
 <section id="setup-warning" class="admin-panel hidden"><h1>أكمل إعداد قاعدة البيانات أولاً</h1><p>أضف رابط Supabase ومفتاح anon في ملف config.js، ثم راجع دليل الإعداد.</p><a class="button button-primary" href="README.md">افتح دليل الإعداد</a></section>
-<section id="login-panel" class="admin-panel auth-panel hidden"><span class="eyebrow">منطقة الإدارة</span><h1>تسجيل الدخول</h1><p>سجّل الدخول للوصول إلى إدارة موقع وش السالفة؟</p><form id="login-form"><label>البريد الإلكتروني<input type="email" id="email" required autocomplete="username"></label><label>كلمة المرور<input type="password" id="password" required autocomplete="current-password"></label><button class="button button-primary button-full" type="submit">دخول لوحة التحكم</button><p class="form-message" id="login-message"></p></form></section>
-<section id="dashboard" class="admin-shell hidden">
+<section id="login-panel" class="admin-panel hidden"></section>
+<section id="dashboard" class="admin-shell">
+<div class="admin-workspace" style="grid-column:1/-1"><div class="admin-panel" role="status" style="border-right:4px solid var(--red);margin-bottom:18px"><h2>المعاينة مثبتة — الإدارة مقفلة مؤقتًا</h2><p>واجهة لوحة التحكم جاهزة للمعاينة. تم إيقاف تسجيل الدخول وعمليات القراءة والتعديل والنشر والحذف إلى أن يكتمل نظام أدوار المدير والمحررين.</p></div></div>
 <aside class="admin-sidebar">
 <div class="sidebar-caption">القائمة الرئيسية</div>
 <button class="sidebar-link active" data-view="overview"><span>⌂</span> نظرة عامة</button>
@@ -70,5 +71,5 @@
 <label>نص الخبر<textarea id="article-body" rows="8" required></textarea></label>
 <label class="check-label"><input id="article-featured" type="checkbox"> عرض في الواجهة الرئيسية</label>
 <div class="editor-actions"><button class="button button-outline" type="button" id="save-draft">حفظ كمسودة</button><button class="button button-primary" type="submit">حفظ ونشر</button></div><p class="form-message" id="editor-message"></p></form></dialog>
-<script src="config.js"></script><script src="admin.js"></script>
+<script src="admin.js"></script>
 </body></html>
