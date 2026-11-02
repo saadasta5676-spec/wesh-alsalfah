@@ -54,7 +54,7 @@ begin
   select count(*), min(id::text)::uuid
     into v_count, v_user_id
   from auth.users
-  where lower(email) = lower('REPLACE_WITH_YOUR_SUPABASE_LOGIN_EMAIL');
+  where lower(email) = lower('saadasta.5676@gmail.com');
 
   if v_count <> 1 then
     raise exception 'Expected exactly one Auth user for the supplied email; found %', v_count;
