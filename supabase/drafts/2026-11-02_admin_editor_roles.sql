@@ -1,8 +1,8 @@
--- DRAFT ONLY: review before running in production.
--- Roles: admin (full editorial + role management), editor (articles, no deletes).
--- This migration intentionally does NOT create an admin automatically.
--- Replace the email in the bootstrap section with the exact email of the existing,
--- trusted Supabase Auth account before running. Do not share passwords or service keys.
+-- DRAFT ONLY. Review this file and the live schema before applying it in Supabase.
+-- Creates database-enforced admin/editor roles for articles.
+-- Admin: read/insert/update/delete articles and manage profiles.
+-- Editor: read/insert/update articles; cannot delete articles or manage profiles.
+-- This file is NOT applied by this commit.
 
 begin;
 
@@ -15,6 +15,8 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- The function reads only the caller's own role. SECURITY DEFINER avoids
+-- recursive evaluation of profiles RLS; all object names are schema-qualified.
 create or replace function public.current_user_role()
 returns text
 language sql
@@ -31,34 +33,47 @@ $$;
 revoke all on function public.current_user_role() from public;
 grant execute on function public.current_user_role() to authenticated;
 
+-- Explicit table grants are still constrained by the RLS policies below.
+revoke all on table public.profiles from anon, authenticated;
+grant select, insert, update, delete on table public.profiles to authenticated;
+
 drop policy if exists "Users can read own profile" on public.profiles;
-create policy "Users can read own profile"
+drop policy if exists "Admins manage profiles" on public.profiles;
+drop policy if exists "Profiles readable by owner or admin" on public.profiles;
+drop policy if exists "Admins can manage profiles" on public.profiles;
+
+create policy "Profiles readable by owner or admin"
 on public.profiles for select
 to authenticated
-using (id = (select auth.uid()));
+using (
+  id = (select auth.uid())
+  or (select public.current_user_role()) = 'admin'
+);
 
-drop policy if exists "Admins manage profiles" on public.profiles;
-create policy "Admins manage profiles"
+create policy "Admins can manage profiles"
 on public.profiles for all
 to authenticated
 using ((select public.current_user_role()) = 'admin')
 with check ((select public.current_user_role()) = 'admin');
 
--- Bootstrap exactly one existing account as admin.
--- IMPORTANT: replace the placeholder with the trusted account email.
+-- Bootstrap the already-confirmed owner account as the first admin.
+-- The migration aborts unless exactly one Auth user matches this email.
 do $bootstrap$
 declare
   v_user_id uuid;
   v_count integer;
 begin
-  select count(*), min(id::text)::uuid
-    into v_count, v_user_id
+  select count(*) into v_count
   from auth.users
   where lower(email) = lower('saadasta.5676@gmail.com');
 
   if v_count <> 1 then
-    raise exception 'Expected exactly one Auth user for the supplied email; found %', v_count;
+    raise exception 'Expected exactly one Auth user for the configured admin email; found %', v_count;
   end if;
+
+  select id into v_user_id
+  from auth.users
+  where lower(email) = lower('saadasta.5676@gmail.com');
 
   insert into public.profiles (id, role)
   values (v_user_id, 'admin')
@@ -67,7 +82,8 @@ begin
 end
 $bootstrap$;
 
--- Remove the previous broad policy that granted every signed-in account all actions.
+-- Remove the previously audited policy that allowed every authenticated
+-- account to manage every article.
 drop policy if exists "Authenticated editors manage articles" on public.articles;
 
 drop policy if exists "Staff can read all articles" on public.articles;
@@ -97,7 +113,9 @@ using ((select public.current_user_role()) = 'admin');
 
 commit;
 
--- After running, verify:
+-- Read-only verification after a separately approved application:
 -- select public.current_user_role();
 -- select policyname, cmd, roles, qual, with_check
--- from pg_policies where schemaname='public' and tablename in ('articles','profiles');
+-- from pg_policies
+-- where schemaname='public' and tablename in ('articles','profiles')
+-- order by tablename, policyname;
