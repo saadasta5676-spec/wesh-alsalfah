@@ -171,11 +171,16 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $role_fn$
   select p.role
   from public.profiles as p
   where p.id = (select auth.uid());
-$;
+$role_fn$;
+
+revoke all on function public.current_user_role() from public;
+revoke all on function public.current_user_role() from anon;
+revoke all on function public.current_user_role() from authenticated;
+grant execute on function public.current_user_role() to authenticated;
 
 -- SECURITY DEFINER functions run with their owner's privileges. Use the
 -- trusted Supabase database owner explicitly; abort if ownership cannot be set.
@@ -205,7 +210,7 @@ begin
   if not found
      or f.owner_name <> 'postgres'
      or f.security_definer is distinct from true
-     or not coalesce('search_path=''' = any(f.function_config), false) then
+     or not coalesce('search_path=""' = any(f.function_config), false) then
     raise exception
       'current_user_role() security check failed: owner=%, security_definer=%, config=%',
       f.owner_name, f.security_definer, f.function_config;
