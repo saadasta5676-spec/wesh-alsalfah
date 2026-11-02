@@ -6,19 +6,36 @@ let db = null;
 if (window.WESH_CONFIG?.SUPABASE_URL && window.WESH_CONFIG?.SUPABASE_ANON_KEY && window.supabase) {
   db = window.supabase.createClient(window.WESH_CONFIG.SUPABASE_URL, window.WESH_CONFIG.SUPABASE_ANON_KEY);
 }
-const demo = [
- {id:"demo1",title:"أهلاً بك في وش السالفة؟",category:"ترند",published_at:new Date().toISOString(),author:"فريق التحرير",image_url:fallbackImage,excerpt:"هذه بطاقة تجريبية لتوضيح شكل الموقع. اربط قاعدة البيانات وانشر أول خبر من لوحة التحكم.",body:"هذا نص تجريبي. لا يمثل خبراً حقيقياً. بعد إعداد Supabase ستظهر هنا الأخبار التي توافق عليها من لوحة التحكم.",featured:true},
- {id:"demo2",title:"أضف أول خبر من لوحة التحكم",category:"السعودية",published_at:new Date().toISOString(),author:"إدارة الموقع",image_url:"https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=900&q=80",excerpt:"المقالات المعتمدة فقط تظهر في الواجهة العامة.",body:"سجل الدخول إلى admin.html بعد إعداد حساب المدير."},
- {id:"demo3",title:"مراجعة الأخبار قبل النشر تحافظ على المصداقية",category:"تقنية",published_at:new Date().toISOString(),author:"فريق التحرير",image_url:"https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=900&q=80",excerpt:"الأخبار المستوردة من RSS تصل إلى قائمة انتظار للمراجعة.",body:"يجب التأكد من المصدر والدقة وحقوق الصور قبل الموافقة على النشر."}
-];
 function normalise(row){return {...row, dateLabel: row.published_at ? new Intl.DateTimeFormat("ar-SA",{dateStyle:"medium"}).format(new Date(row.published_at)) : "حديثاً"}}
+function showDataStatus(message, type="info"){
+  const status=$("#data-status");
+  if(!status)return;
+  status.textContent=message;
+  status.dataset.type=type;
+  status.classList.remove("hidden");
+}
+function hideDataStatus(){
+  const status=$("#data-status");
+  if(status)status.classList.add("hidden");
+}
 async function loadArticles(){
-  if(db){
-    const {data,error}=await db.from("articles").select("*").eq("status","published").order("published_at",{ascending:false}).limit(60);
-    if(!error && data?.length) articles=data.map(normalise);
-    else articles=demo.map(normalise);
-  } else articles=demo.map(normalise);
+  articles=[];
+  if(!db){
+    renderHome();
+    showDataStatus("الأخبار غير متاحة حالياً. تعذّر الاتصال بقاعدة البيانات؛ يرجى المحاولة لاحقاً.","error");
+    return;
+  }
+  const {data,error}=await db.from("articles").select("*").eq("status","published").order("published_at",{ascending:false}).limit(60);
+  if(error){
+    console.error("تعذّر تحميل الأخبار من Supabase:",error);
+    renderHome();
+    showDataStatus("تعذّر تحميل الأخبار حالياً. نعمل على حل المشكلة؛ يرجى المحاولة لاحقاً.","error");
+    return;
+  }
+  articles=(data||[]).map(normalise);
   renderHome();
+  if(!articles.length)showDataStatus("لا توجد أخبار منشورة حالياً. تابعنا قريباً لآخر التحديثات.");
+  else hideDataStatus();
 }
 function cardMarkup(a,hero=false,small=false){
  const image=a.image_url||fallbackImage, cls=hero?`hero-card${small?" small":""}`:"news-card";
