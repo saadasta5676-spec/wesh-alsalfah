@@ -1,83 +1,32 @@
-const $=s=>document.querySelector(s);
-const cfg=window.WESH_CONFIG||{};
-const configured=!!(cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY&&window.supabase);
-const client=configured?window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY):null;
-let currentStatus="pending",cache=[];
-const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function show(id,on){$(id).classList.toggle("hidden",!on)}
-function message(id,text){$(id).textContent=text}
-const statusNames={pending:"بانتظار المراجعة",published:"منشور",draft:"مسودة",rejected:"مرفوض"};
-async function init(){
- if(!configured){show("#setup-warning",true);return}
- const {data:{session}}=await client.auth.getSession();
- if(session)showDashboard();else show("#login-panel",true);
- client.auth.onAuthStateChange((_event,session)=>{if(session)showDashboard();else{show("#dashboard",false);show("#login-panel",true);show("#logout-btn",false)}});
-}
-$("#login-form").addEventListener("submit",async e=>{
- e.preventDefault();message("#login-message","جارٍ تسجيل الدخول...");
- const {error}=await client.auth.signInWithPassword({email:$("#email").value,password:$("#password").value});
- message("#login-message",error?error.message:"تم الدخول.");
+// Safe preview mode: no Supabase client, authentication, or database operations are enabled.
+// Editorial actions remain disabled until role-based access control is reviewed and deployed.
+document.addEventListener("DOMContentLoaded",()=>{
+  const notice=document.querySelector('[role="status"]');
+  document.querySelectorAll("#dashboard button, #dashboard input, #dashboard select, #dashboard textarea").forEach(el=>{
+    if(el.classList.contains("sidebar-link") || el.hasAttribute("data-go")) return;
+    el.disabled=true;
+    el.setAttribute("aria-disabled","true");
+    el.title="سيتم تفعيل هذه الوظيفة بعد إكمال أمان الأدوار";
+  });
+  document.querySelectorAll(".sidebar-link").forEach(button=>{
+    button.addEventListener("click",()=>{
+      const view=button.dataset.view;
+      document.querySelectorAll(".sidebar-link").forEach(item=>item.classList.toggle("active",item===button));
+      document.querySelectorAll(".admin-view").forEach(section=>section.classList.toggle("active",section.id==="view-"+view));
+    });
+  });
+  document.querySelectorAll("[data-go]").forEach(button=>{
+    button.addEventListener("click",()=>{
+      const view=button.dataset.go;
+      document.querySelectorAll(".sidebar-link").forEach(item=>item.classList.toggle("active",item.dataset.view===view));
+      document.querySelectorAll(".admin-view").forEach(section=>section.classList.toggle("active",section.id==="view-"+view));
+    });
+  });
+  const list=document.querySelector("#admin-list");
+  if(list) list.innerHTML='<div class="empty-admin">إدارة الأخبار ستُفعّل بعد تأمين صلاحيات المدير والمحررين.</div>';
+  const recent=document.querySelector("#recent-list");
+  if(recent) recent.innerHTML='<div class="empty-admin">البيانات الحقيقية غير متصلة في وضع المعاينة الآمن.</div>';
+  document.querySelectorAll("#pending-count,#published-count,#other-count,#articles-pending-count,#articles-published-count,#articles-other-count,#nav-pending-count").forEach(el=>el.textContent="—");
+  const newArticle=document.querySelector("#new-article");
+  if(newArticle) newArticle.disabled=true;
 });
-$("#logout-btn").addEventListener("click",()=>client.auth.signOut());
-async function showDashboard(){show("#setup-warning",false);show("#login-panel",false);show("#dashboard",true);show("#logout-btn",true);await refresh();}
-function navigate(view){
- document.querySelectorAll(".sidebar-link").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
- document.querySelectorAll(".admin-view").forEach(s=>s.classList.toggle("active",s.id==="view-"+view));
- if(view==="articles")renderList();
-}
-document.querySelectorAll(".sidebar-link").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.view)));
-document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.go)));
-async function refresh(){
- const {data,error}=await client.from("articles").select("*").order("created_at",{ascending:false}).limit(300);
- if(error){$("#admin-list").innerHTML=`<div class="empty-admin">تعذر تحميل الأخبار: ${esc(error.message)}</div>`;$("#recent-list").innerHTML="";return}
- cache=data||[];
- const pending=cache.filter(x=>x.status==="pending").length;
- const published=cache.filter(x=>x.status==="published").length;
- const other=cache.filter(x=>["draft","rejected"].includes(x.status)).length;
- $("#pending-count").textContent=pending;$("#published-count").textContent=published;$("#other-count").textContent=other;
- $("#articles-pending-count").textContent=pending;$("#articles-published-count").textContent=published;$("#articles-other-count").textContent=other;$("#nav-pending-count").textContent=pending;
- renderList();renderRecent();
-}
-function renderRecent(){
- const rows=cache.slice(0,5);
- $("#recent-list").innerHTML=rows.length?rows.map(a=>`<div class="recent-row"><img src="${esc(a.image_url||"https://placehold.co/120x90?text=News")}" alt=""><div><b>${esc(a.title)}</b><small>${esc(a.category)} · ${esc(statusNames[a.status]||a.status||"غير محدد")}</small></div></div>`).join(""):'<div class="empty-admin">لا توجد أخبار مسجلة حتى الآن.</div>';
-}
-function renderList(){
- const term=$("#article-search").value.trim().toLocaleLowerCase("ar");
- const category=$("#category-filter").value;
- const rows=cache.filter(a=>(currentStatus==="all"||a.status===currentStatus)&&(!category||a.category===category)&&(!term||[a.title,a.source_name,a.author,a.excerpt].some(v=>String(v||"").toLocaleLowerCase("ar").includes(term))));
- if(!rows.length){$("#admin-list").innerHTML='<div class="empty-admin">لا توجد أخبار مطابقة لهذه التصفية.</div>';return}
- $("#admin-list").innerHTML=rows.map(a=>`<article class="admin-item"><img src="${esc(a.image_url||"https://placehold.co/240x160?text=News")}" alt=""><div><h3>${esc(a.title)}</h3><p>${esc(a.category)} · ${esc(a.source_name||a.author||"تحرير الموقع")} · ${new Date(a.created_at).toLocaleString("ar-SA")}</p><span class="status-pill">${esc(statusNames[a.status]||a.status)}</span></div><div class="item-actions">${a.status!=="published"?`<button class="approve" data-action="publish" data-id="${esc(a.id)}">نشر</button>`:""}<button data-action="edit" data-id="${esc(a.id)}">تعديل</button>${a.status!=="rejected"?`<button class="reject" data-action="reject" data-id="${esc(a.id)}">رفض</button>`:""}<button data-action="delete" data-id="${esc(a.id)}">حذف</button></div></article>`).join("");
-}
-document.querySelectorAll(".admin-tabs button").forEach(b=>b.addEventListener("click",()=>{currentStatus=b.dataset.status;document.querySelectorAll(".admin-tabs button").forEach(x=>x.classList.toggle("active",x===b));renderList()}));
-$("#article-search").addEventListener("input",renderList);
-$("#category-filter").addEventListener("change",renderList);
-function clearForm(){$("#article-id").value="";$("#article-title").value="";$("#article-category").value="ترند";$("#article-author").value="فريق التحرير";$("#article-image").value="";$("#article-excerpt").value="";$("#article-body").value="";$("#article-featured").checked=false;message("#editor-message","");}
-function editArticle(a){
- clearForm();$("#form-heading").textContent=a?"تعديل الخبر":"إضافة خبر";
- if(a){$("#article-id").value=a.id;$("#article-title").value=a.title;$("#article-category").value=a.category;$("#article-author").value=a.author||"فريق التحرير";$("#article-image").value=a.image_url||"";$("#article-excerpt").value=a.excerpt||"";$("#article-body").value=a.body||"";$("#article-featured").checked=!!a.featured;}
- $("#edit-dialog").showModal();
-}
-$("#new-article").addEventListener("click",()=>editArticle(null));
-$("#new-article-secondary").addEventListener("click",()=>editArticle(null));
-$("#close-editor").addEventListener("click",()=>$("#edit-dialog").close());
-async function saveArticle(status){
- const id=$("#article-id").value;
- const payload={title:$("#article-title").value.trim(),category:$("#article-category").value,author:$("#article-author").value.trim()||"فريق التحرير",image_url:$("#article-image").value.trim(),excerpt:$("#article-excerpt").value.trim(),body:$("#article-body").value.trim(),featured:$("#article-featured").checked,status,published_at:status==="published"?new Date().toISOString():null};
- if(!payload.title||!payload.body){message("#editor-message","العنوان ونص الخبر مطلوبان.");return}
- message("#editor-message","جارٍ الحفظ...");
- const result=id?await client.from("articles").update(payload).eq("id",id):await client.from("articles").insert(payload);
- if(result.error){message("#editor-message",result.error.message);return}
- $("#edit-dialog").close();await refresh();navigate("articles");
-}
-$("#article-form").addEventListener("submit",e=>{e.preventDefault();saveArticle("published")});
-$("#save-draft").addEventListener("click",()=>saveArticle("draft"));
-$("#admin-list").addEventListener("click",async e=>{
- const b=e.target.closest("[data-action]");if(!b)return;const a=cache.find(x=>String(x.id)===b.dataset.id);if(!a)return;
- if(b.dataset.action==="edit"){editArticle(a);return}
- if(b.dataset.action==="delete"){if(!confirm("تأكيد حذف الخبر نهائياً؟"))return;const {error}=await client.from("articles").delete().eq("id",a.id);if(error)alert(error.message);await refresh();return}
- const status=b.dataset.action==="publish"?"published":"rejected";
- const {error}=await client.from("articles").update({status,published_at:status==="published"?new Date().toISOString():a.published_at}).eq("id",a.id);
- if(error)alert(error.message);await refresh();
-});
-init();
