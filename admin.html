@@ -5,6 +5,7 @@
 <title>لوحة التحكم | وش السالفة؟</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="admin.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 </head>
 <body class="admin-body">
@@ -14,7 +15,14 @@
 </div></header>
 <main class="admin-main">
 <section id="setup-warning" class="admin-panel hidden"><h1>أكمل إعداد قاعدة البيانات أولاً</h1><p>أضف رابط Supabase ومفتاح anon في ملف config.js، ثم راجع دليل الإعداد.</p><a class="button button-primary" href="README.md">افتح دليل الإعداد</a></section>
-<section id="login-panel" class="admin-panel hidden"></section>
+<section id="login-panel" class="admin-panel auth-panel">
+<h1>دخول الإدارة</h1><p>الدخول مخصص لحسابات فريق التحرير المعتمدة.</p>
+<form id="login-form"><label>البريد الإلكتروني<input id="login-email" type="email" autocomplete="username" required></label><label>كلمة المرور<input id="login-password" type="password" autocomplete="current-password" required></label><button class="button button-primary" type="submit">دخول آمن</button></form>
+<div id="auth-message" class="form-message" role="status" aria-live="polite"></div>
+<section id="mfa-enroll" class="hidden"><h2>تفعيل المصادقة الثنائية</h2><p>امسح رمز QR باستخدام تطبيق المصادقة، ثم أدخل الرمز المكوّن من 6 أرقام.</p><img id="mfa-qr" alt="رمز إعداد المصادقة الثنائية" style="display:block;max-width:220px;margin:16px auto;background:white;padding:10px"><label>مفتاح يدوي عند تعذّر مسح QR<input id="mfa-secret" readonly></label><label>رمز التحقق<input id="mfa-enroll-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label><button id="verify-enroll" class="button button-primary" type="button">تحقق وفعّل MFA</button></section>
+<section id="mfa-challenge" class="hidden"><h2>تحقق المصادقة الثنائية</h2><p>أدخل الرمز الحالي من تطبيق المصادقة للمتابعة.</p><label>رمز التحقق<input id="mfa-login-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label><button id="verify-login" class="button button-primary" type="button">تحقق</button></section>
+<button id="logout-button" class="button button-outline hidden" type="button">تسجيل الخروج</button>
+</section>
 <section id="dashboard" class="admin-shell">
 <div class="admin-workspace" style="grid-column:1/-1"><div class="admin-panel" role="status" style="border-right:4px solid var(--red);margin-bottom:18px"><h2>المعاينة مثبتة — الإدارة مقفلة مؤقتًا</h2><p>واجهة لوحة التحكم جاهزة للمعاينة. تم إيقاف تسجيل الدخول وعمليات القراءة والتعديل والنشر والحذف إلى أن يكتمل نظام أدوار المدير والمحررين.</p></div></div>
 <aside class="admin-sidebar">
@@ -34,7 +42,7 @@
 <div class="sidebar-note"><b>وش السالفة؟</b><span>مركز إدارة المحتوى</span></div>
 </aside>
 <div class="admin-workspace">
-<section class="admin-view active" id="view-overview">
+<section class="admin-view active hidden" id="view-overview">
 <div class="admin-title-row"><div><span class="eyebrow">مرحبًا بك</span><h1>نظرة عامة</h1><p>ملخص سريع لحالة المحتوى في موقعك.</p></div><button class="button button-primary" id="new-article">＋ خبر جديد</button></div>
 <div class="stats-grid">
 <div class="stat-card"><span>بانتظار المراجعة</span><strong id="pending-count">0</strong><small>أخبار تحتاج مراجعتك</small></div>
