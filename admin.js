@@ -141,7 +141,7 @@
         message("جارٍ التحقق من الرمز…");
         const { data: challenge, error: challengeError } = await client.auth.mfa.challenge({ factorId });
         if (challengeError) throw challengeError;
-        const { error } = await client.auth.mfa.verify({ factorId, challengeId: challenge.id, code });
+        const { error } = await client.auth.mfa.verify({ factorId, challengeId: challenge.data.id, code });
         if (error) throw error;
         $("#mfa-enroll-code").value = "";
         await finishAAL2();
