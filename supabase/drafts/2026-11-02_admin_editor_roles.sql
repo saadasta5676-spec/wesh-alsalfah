@@ -171,16 +171,47 @@ language sql
 stable
 security definer
 set search_path = ''
-as $$
+as $
   select p.role
   from public.profiles as p
-  where p.id = (select auth.uid())
-  limit 1;
-$$;
+  where p.id = (select auth.uid());
+$;
 
+-- SECURITY DEFINER functions run with their owner's privileges. Use the
+-- trusted Supabase database owner explicitly; abort if ownership cannot be set.
+alter function public.current_user_role() owner to postgres;
+
+-- Reset the function ACL rather than relying on inherited/default privileges.
 revoke all on function public.current_user_role() from public;
 revoke all on function public.current_user_role() from anon;
+revoke all on function public.current_user_role() from authenticated;
 grant execute on function public.current_user_role() to authenticated;
+
+do $function_security_check$
+declare
+  f record;
+begin
+  select
+    pg_get_userbyid(p.proowner) as owner_name,
+    p.prosecdef as security_definer,
+    p.proconfig as function_config
+  into f
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public'
+    and p.proname = 'current_user_role'
+    and pg_get_function_identity_arguments(p.oid) = '';
+
+  if not found
+     or f.owner_name <> 'postgres'
+     or f.security_definer is distinct from true
+     or not coalesce('search_path=''' = any(f.function_config), false) then
+    raise exception
+      'current_user_role() security check failed: owner=%, security_definer=%, config=%',
+      f.owner_name, f.security_definer, f.function_config;
+  end if;
+end
+$function_security_check$;
 
 -- Table privileges do not replace RLS; both layers must allow an operation.
 revoke all on table public.profiles from anon, authenticated;
