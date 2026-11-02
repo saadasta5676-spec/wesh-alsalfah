@@ -4,30 +4,30 @@
 --   editor: select/insert/update articles; cannot delete or manage profiles
 --
 -- IMPORTANT:
--- 1) This preflight is pinned to the exact live articles policies observed on
---    2026-11-02. If production changes, review pg_policies and update this
---    allow-list deliberately; do not loosen it to accept unknown policies.
--- 2) The live result showed exactly two PERMISSIVE policies:
+-- 1) This preflight is pinned to the exact live articles policies and grants
+--    observed on 2026-11-02. If production changes, review live catalogs and
+--    update the allow-lists deliberately; unknown state must stop the migration.
+-- 2) Live articles policies observed:
 --      Authenticated editors manage articles:
---        roles={authenticated}, cmd=ALL, qual=true, with_check=true
+--        PERMISSIVE, roles={authenticated}, cmd=ALL, qual=true, with_check=true
 --      Public can read published articles:
---        roles={public}, cmd=SELECT,
+--        PERMISSIVE, roles={public}, cmd=SELECT,
 --        qual=(status = 'published'::text), with_check=NULL
--- 3) No profiles policy rows were returned. The preflight also requires that
---    public.profiles does not already exist, so an existing object is reviewed
---    rather than silently reused.
--- 4) This migration does NOT bootstrap an admin by email. Provision the first
+-- 3) Live articles grants observed for both anon and authenticated:
+--      DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+--    All were non-grantable. postgres and service_role grants are intentionally
+--    left unchanged by this draft.
+-- 4) No profiles policy rows or profiles table were returned. This draft stops
+--    if public.profiles already exists rather than silently reusing it.
+-- 5) This migration does NOT bootstrap an admin by email. Provision the first
 --    admin separately using a verified auth.users UUID in a private,
 --    one-time operation after this migration is reviewed and approved.
--- 5) After application, confirm current_user_role() is owned by a trusted
---    database role (normally postgres), inspect grants, and test each role.
+-- 6) After application, verify function ownership/grants and test each role.
 
 begin;
 
 -- Fail closed against the exact production policy state observed.
--- Normalize whitespace/case only; policy names, permissiveness, roles,
--- commands, expressions, and NULL-ness must otherwise match exactly.
-do $preflight$
+do $preflight_policies$
 declare
   p record;
   saw_authenticated_all boolean := false;
@@ -78,12 +78,58 @@ begin
   if not saw_authenticated_all then
     raise exception 'Expected live policy not found: Authenticated editors manage articles.';
   end if;
-
   if not saw_public_published_select then
     raise exception 'Expected live policy not found: Public can read published articles.';
   end if;
 end
-$preflight$;
+$preflight_policies$;
+
+-- Pin the table-level grants for anon/authenticated to the exact live snapshot.
+-- This detects drift before any REVOKE/GRANT runs. It intentionally does not
+-- modify postgres or service_role ACLs.
+do $preflight_grants$
+declare
+  r record;
+  expected_privileges text[] := array[
+    'DELETE', 'INSERT', 'REFERENCES', 'SELECT', 'TRIGGER', 'TRUNCATE', 'UPDATE'
+  ];
+begin
+  for r in
+    select grantee, array_agg(privilege_type order by privilege_type) as privileges,
+           bool_or(is_grantable = 'YES') as has_grant_option
+    from information_schema.role_table_grants
+    where table_schema = 'public'
+      and table_name = 'articles'
+      and grantee in ('anon', 'authenticated')
+    group by grantee
+  loop
+    if r.privileges is distinct from expected_privileges
+       or coalesce(r.has_grant_option, false) then
+      raise exception
+        'Unexpected articles grants for %: privileges=%, grant_option=%. Review live grants before applying.',
+        r.grantee, r.privileges, r.has_grant_option;
+    end if;
+  end loop;
+
+  if (
+    select count(distinct grantee)
+    from information_schema.role_table_grants
+    where table_schema = 'public'
+      and table_name = 'articles'
+      and grantee in ('anon', 'authenticated')
+  ) <> 2 then
+    raise exception 'Expected grant rows for both anon and authenticated were not found.';
+  end if;
+end
+$preflight_grants$;
+
+-- Least privilege for the public-facing article table.
+-- anon: read only; the existing SELECT RLS policy limits this to published rows.
+-- authenticated: read/write operations; RLS below limits DELETE to admins.
+-- TRUNCATE, TRIGGER, REFERENCES and grant options are not needed by either role.
+revoke all privileges on table public.articles from anon, authenticated;
+grant select on table public.articles to anon;
+grant select, insert, update, delete on table public.articles to authenticated;
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -165,7 +211,7 @@ commit;
 -- where schemaname = 'public' and tablename in ('articles', 'profiles')
 -- order by tablename, policyname;
 --
--- Also inspect:
--- * function owner for public.current_user_role() (must be trusted);
--- * table privileges on articles and profiles (RLS does not replace GRANT);
--- * anon/editor/admin behavior in separate sessions before enabling admin UI.
+-- Verify table grants (anon should have SELECT only; authenticated should have
+-- SELECT/INSERT/UPDATE/DELETE; neither should have TRUNCATE/TRIGGER/REFERENCES).
+-- Inspect current_user_role() owner, SECURITY DEFINER, search_path and EXECUTE ACL.
+-- Test anon/editor/admin in separate sessions before enabling the admin UI.
