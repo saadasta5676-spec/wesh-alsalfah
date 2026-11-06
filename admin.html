@@ -77,8 +77,10 @@
 <label>رابط الصورة<input id="article-image" type="url" placeholder="https://..."></label>
 <label>ملخص الخبر<textarea id="article-excerpt" rows="3"></textarea></label>
 <label>نص الخبر<textarea id="article-body" rows="8" required></textarea></label>
-<label class="check-label"><input id="article-featured" type="checkbox"> عرض في الواجهة الرئيسية</label>
-<div class="editor-actions"><button class="button button-outline" type="button" id="save-draft">حفظ كمسودة</button><button class="button button-primary" type="submit">حفظ ونشر</button></div><p class="form-message" id="editor-message"></p></form></dialog>
+<label>حالة التحقق (للمدير فقط)<select id="article-verification"><option value="unverified">غير متحقق</option><option value="checking">قيد التحقق</option><option value="verified">موثق</option><option value="debunked">تم نفيه</option></select></label>
+<label>مصادر التحقق بصيغة JSON (كل مصدر: name وurl وis_primary)</label><textarea id="article-sources" rows="5" placeholder='[{"name":"المصدر الرسمي","url":"https://...","is_primary":true}]'></textarea>
+<label class="check-label"><input id="article-featured" type="checkbox"> طلب تمييز الخبر عند النشر</label>
+<div class="editor-actions"><button class="button button-outline" type="button" id="save-draft">حفظ كمسودة</button><button class="button button-primary" type="submit">إرسال للمراجعة</button></div><p class="form-message" id="editor-message"></p></form></dialog>
 <script src="config.js"></script>
 <script src="admin.js"></script><script src="admin-modules.js"></script>
 </body></html>
