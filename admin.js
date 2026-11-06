@@ -78,10 +78,11 @@
   async function beginEnrollment() {
     const { verified, unverified } = await factorsForUser();
     if (verified.length) return beginChallenge(verified[0]);
-    // Remove abandoned, unverified setup attempts before issuing a fresh QR.
-    for (const f of unverified) {
-      const { error } = await client.auth.mfa.unenroll({ factorId: f.id });
-      if (error) throw error;
+    // Never remove an existing factor automatically. An unverified factor may
+    // belong to an earlier setup attempt; deleting it silently can lock out the
+    // account or discard a factor the user intended to keep.
+    if (unverified.length) {
+      throw new Error("يوجد إعداد مصادقة ثنائية غير مكتمل في الحساب. لم نحذفه تلقائيًا حفاظًا على أمانك؛ راجع عوامل المصادقة في Supabase Auth ثم أعد المحاولة.");
     }
     const { data, error } = await client.auth.mfa.enroll({ factorType: "totp", friendlyName: "Wesh Admin Authenticator" });
     if (error) throw error;
