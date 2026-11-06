@@ -64,7 +64,7 @@
   }
   async function refreshArticles(){
     $("#admin-list").innerHTML='<div class="empty-admin">جارٍ تحميل الأخبار…</div>';
-    const {data,error}=await client.from("articles").select("id,title,category,author,image_url,excerpt,body,source_name,source_url,status,featured,published_at,created_at").order("created_at",{ascending:false}).limit(300);
+    const {data,error}=await client.from("articles").select("id,title,category,author,image_url,excerpt,body,source_name,source_url,status,featured,published_at,created_at,verification_status,verification_sources,verified_at").order("created_at",{ascending:false}).limit(300);
     if(error){$("#admin-list").innerHTML='<div class="empty-admin">تعذر تحميل الأخبار. '+esc(error.message)+'</div>';return;}
     rows=data||[];
     const count=s=>rows.filter(a=>a.status===s).length;
@@ -78,15 +78,19 @@
     const q=($("#article-search")?.value||"").trim().toLowerCase(),cat=$("#category-filter")?.value||"";
     const list=rows.filter(a=>(activeStatus==="all"||a.status===activeStatus)&&(!cat||a.category===cat)&&(!q||[a.title,a.source_name,a.author].some(v=>String(v||"").toLowerCase().includes(q))));
     if(!list.length){$("#admin-list").innerHTML='<div class="empty-admin">لا توجد أخبار مطابقة.</div>';return;}
-    $("#admin-list").innerHTML=list.map(a=>'<article class="admin-item"><img src="'+esc(a.image_url||"")+'" alt=""><div><h3>'+esc(a.title)+'</h3><p>'+esc(a.category)+' · '+esc(a.source_name||a.author||"فريق التحرير")+' · '+new Date(a.created_at).toLocaleString("ar-SA")+'</p><span class="status-pill">'+esc(a.status)+'</span></div><div class="item-actions"><button data-action="edit" data-id="'+a.id+'">تعديل</button>'+(role==="admin"&&a.status!=="rejected"?'<button class="reject" data-action="reject" data-id="'+a.id+'">رفض</button>':"")+(role==="admin"?'<button data-action="delete" data-id="'+a.id+'">حذف</button>':"")+'</div></article>').join("");
+    $("#admin-list").innerHTML=list.map(a=>'<article class="admin-item"><img src="'+esc(a.image_url||"")+'" alt=""><div><h3>'+esc(a.title)+'</h3><p>'+esc(a.category)+' · '+esc(a.source_name||a.author||"فريق التحرير")+' · '+new Date(a.created_at).toLocaleString("ar-SA")+'</p><span class="status-pill">'+esc(a.status)+'</span></div><div class="item-actions"><button data-action="edit" data-id="'+a.id+'">تعديل</button>'+(role==="admin"&&a.status!=="rejected"?'<button class="reject" data-action="reject" data-id="'+a.id+'">رفض</button>':"")+(role==="admin"&&a.verification_status==="verified"?'<button class="publish" data-action="publish" data-id="'+a.id+'">نشر</button>':"")+(role==="admin"?'<button data-action="delete" data-id="'+a.id+'">حذف</button>':"")+'</div></article>').join("");
   }
   function editArticle(a){
-    $("#article-id").value=a?.id||"";$("#article-title").value=a?.title||"";$("#article-category").value=a?.category||"السعودية";$("#article-author").value=a?.author||"فريق التحرير";$("#article-image").value=a?.image_url||"";$("#article-excerpt").value=a?.excerpt||"";$("#article-body").value=a?.body||"";$("#article-featured").checked=!!a?.featured;$("#form-heading").textContent=a?"تعديل الخبر":"إضافة خبر";editorNote("");$("#edit-dialog").showModal();
+    $("#article-id").value=a?.id||"";$("#article-title").value=a?.title||"";$("#article-category").value=a?.category||"السعودية";$("#article-author").value=a?.author||"فريق التحرير";$("#article-image").value=a?.image_url||"";$("#article-excerpt").value=a?.excerpt||"";$("#article-body").value=a?.body||"";$("#article-featured").checked=!!a?.featured;$("#article-verification").value=a?.verification_status||"unverified";$("#article-sources").value=JSON.stringify(a?.verification_sources||[],null,2);$("#form-heading").textContent=a?"تعديل الخبر":"إضافة خبر";editorNote("");$("#edit-dialog").showModal();
   }
   async function saveArticle(status){
     if(role!=="admin"){editorNote("المحرر يحفظ كمسودة أو يرسل للمراجعة فقط.");return;}
     const id=$("#article-id").value;
-    const payload={title:$("#article-title").value.trim(),category:$("#article-category").value,author:$("#article-author").value.trim()||"فريق التحرير",image_url:$("#article-image").value.trim()||null,excerpt:$("#article-excerpt").value.trim(),body:$("#article-body").value.trim(),featured:status==="published"?$("#article-featured").checked:false,status,published_at:status==="published"?new Date().toISOString():null};
+    let sources=[];try{sources=JSON.parse($("#article-sources").value||"[]");if(!Array.isArray(sources))throw new Error();}catch{editorNote("المصادر يجب أن تكون بصيغة JSON صحيحة.");return;}
+    const verification=$("#article-verification").value;
+    if(role==="admin"&&verification==="verified"&&!sources.length){editorNote("أضف مصدرًا موثقًا قبل اعتماد التحقق.");return;}
+    const payload={title:$("#article-title").value.trim(),category:$("#article-category").value,author:$("#article-author").value.trim()||"فريق التحرير",image_url:$("#article-image").value.trim()||null,excerpt:$("#article-excerpt").value.trim(),body:$("#article-body").value.trim(),featured:false,status:status==="published"?"pending":status,published_at:null};
+    if(role==="admin"){payload.verification_status=verification;payload.verification_sources=sources;if(verification==="verified")payload.verified_at=new Date().toISOString();}
     if(!payload.title||!payload.body){editorNote("العنوان ونص الخبر مطلوبان.");return;}
     editorNote("جارٍ الحفظ…");
     const result=id?await client.from("articles").update(payload).eq("id",id):await client.from("articles").insert({...payload,status:"pending",featured:false,published_at:null});
@@ -112,8 +116,8 @@
       try{
         if(b.dataset.action==="edit"){editArticle(a);return;}
         if(b.dataset.action==="delete"){if(!confirm("تأكيد الحذف النهائي؟"))return;const {error}=await client.from("articles").delete().eq("id",a.id);if(error)throw error;}
-        if(b.dataset.action==="publish"){throw new Error("النشر مقفل حتى تفعيل واختبار مخطط التحقق الصارم على قاعدة معاينة معزولة.");}
-        if(b.dataset.action==="reject"){const {error}=await client.from("articles").update({status:"rejected"}).eq("id",a.id);if(error)throw error;}
+        if(b.dataset.action==="publish"){if(role!=="admin"||a.verification_status!=="verified")throw new Error("يلزم المدير واعتماد التحقق أولًا.");const {error}=await client.from("articles").update({status:"published",published_at:new Date().toISOString()}).eq("id",a.id);if(error)throw error;}
+        if(b.dataset.action==="reject"){if(role!=="admin")throw new Error("الرفض متاح للمدير فقط.");const {error}=await client.from("articles").update({status:"rejected",published_at:null}).eq("id",a.id);if(error)throw error;}
         await refreshArticles();
       }catch(err){alert("تعذر تنفيذ العملية: "+err.message);}
     });
