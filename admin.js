@@ -78,7 +78,7 @@
     const q=($("#article-search")?.value||"").trim().toLowerCase(),cat=$("#category-filter")?.value||"";
     const list=rows.filter(a=>(activeStatus==="all"||a.status===activeStatus)&&(!cat||a.category===cat)&&(!q||[a.title,a.source_name,a.author].some(v=>String(v||"").toLowerCase().includes(q))));
     if(!list.length){$("#admin-list").innerHTML='<div class="empty-admin">لا توجد أخبار مطابقة.</div>';return;}
-    $("#admin-list").innerHTML=list.map(a=>'<article class="admin-item"><img src="'+esc(a.image_url||"")+'" alt=""><div><h3>'+esc(a.title)+'</h3><p>'+esc(a.category)+' · '+esc(a.source_name||a.author||"فريق التحرير")+' · '+new Date(a.created_at).toLocaleString("ar-SA")+'</p><span class="status-pill">'+esc(a.status)+'</span></div><div class="item-actions"><button data-action="edit" data-id="'+a.id+'">تعديل</button>'+(role==="admin"&&a.status!=="published"?'<button class="approve" data-action="publish" data-id="'+a.id+'">نشر</button>':"")+(role==="admin"&&a.status!=="rejected"?'<button class="reject" data-action="reject" data-id="'+a.id+'">رفض</button>':"")+(role==="admin"?'<button data-action="delete" data-id="'+a.id+'">حذف</button>':"")+'</div></article>').join("");
+    $("#admin-list").innerHTML=list.map(a=>'<article class="admin-item"><img src="'+esc(a.image_url||"")+'" alt=""><div><h3>'+esc(a.title)+'</h3><p>'+esc(a.category)+' · '+esc(a.source_name||a.author||"فريق التحرير")+' · '+new Date(a.created_at).toLocaleString("ar-SA")+'</p><span class="status-pill">'+esc(a.status)+'</span></div><div class="item-actions"><button data-action="edit" data-id="'+a.id+'">تعديل</button>'+(role==="admin"&&a.status!=="rejected"?'<button class="reject" data-action="reject" data-id="'+a.id+'">رفض</button>':"")+(role==="admin"?'<button data-action="delete" data-id="'+a.id+'">حذف</button>':"")+'</div></article>').join("");
   }
   function editArticle(a){
     $("#article-id").value=a?.id||"";$("#article-title").value=a?.title||"";$("#article-category").value=a?.category||"السعودية";$("#article-author").value=a?.author||"فريق التحرير";$("#article-image").value=a?.image_url||"";$("#article-excerpt").value=a?.excerpt||"";$("#article-body").value=a?.body||"";$("#article-featured").checked=!!a?.featured;$("#form-heading").textContent=a?"تعديل الخبر":"إضافة خبر";editorNote("");$("#edit-dialog").showModal();
@@ -112,7 +112,7 @@
       try{
         if(b.dataset.action==="edit"){editArticle(a);return;}
         if(b.dataset.action==="delete"){if(!confirm("تأكيد الحذف النهائي؟"))return;const {error}=await client.from("articles").delete().eq("id",a.id);if(error)throw error;}
-        if(b.dataset.action==="publish"){const {error}=await client.from("articles").update({status:"published",published_at:new Date().toISOString()}).eq("id",a.id);if(error)throw error;}
+        if(b.dataset.action==="publish"){throw new Error("النشر مقفل حتى تفعيل واختبار مخطط التحقق الصارم على قاعدة معاينة معزولة.");}
         if(b.dataset.action==="reject"){const {error}=await client.from("articles").update({status:"rejected"}).eq("id",a.id);if(error)throw error;}
         await refreshArticles();
       }catch(err){alert("تعذر تنفيذ العملية: "+err.message);}
