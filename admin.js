@@ -19,6 +19,7 @@
     $("#new-article").hidden = role !== "admin";
     $("#new-article-secondary").hidden = role !== "admin";
     refreshArticles();
+    window.dispatchEvent(new Event("wesh:admin-ready"));
   }
   function switchTo(section){
     document.querySelectorAll(".sidebar-link").forEach(x=>x.classList.toggle("active",x.dataset.view===section));
