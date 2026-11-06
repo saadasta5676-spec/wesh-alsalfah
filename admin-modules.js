@@ -47,7 +47,7 @@ $("#trend-id").value=t.id;["name","slug","summary","region","platform","source_u
 }
 async function saveTrend(e){
 e.preventDefault();const id=$("#trend-id").value;
-const payload={name:$("#trend-name").value.trim(),slug:$("#trend-slug").value.trim().toLowerCase(),summary:$("#trend-summary").value.trim(),region:$("#trend-region").value,platform:$("#trend-platform").value,source_url:$("#trend-source").value.trim()||null};
+const payload={name:$("#trend-name").value.trim(),slug:$("#trend-slug").value.trim().toLowerCase(),summary:$("#trend-summary").value.trim(),region:$("#trend-region").value,platform:$("#trend-platform").value,source_url:$("#trend-source").value.trim()||null,verification_sources:[]};
 if(!payload.name||!payload.slug){msg("trend-message","الاسم والرابط المختصر مطلوبان.");return}
 if(role==="admin"){payload.verification_status="unverified";payload.status="pending";payload.display_order=Number($("#trend-order").value)||0;payload.starts_at=$("#trend-start").value?new Date($("#trend-start").value).toISOString():null;payload.ends_at=$("#trend-end").value?new Date($("#trend-end").value).toISOString():null;}
 else{payload.verification_status="unverified";payload.status="pending";payload.created_by=uid}
@@ -63,7 +63,7 @@ if(b.dataset.tedit){const t=trends.find(x=>x.id===b.dataset.tedit);if(t)fillTren
 if(role!=="admin")return;
 const id=b.dataset.tverify||b.dataset.tpause||b.dataset.tdelete;if(!id)return;
 let q;
-if(b.dataset.tverify)q=db.from("trends").update({status:"active",verification_status:"verified",reviewed_by:uid}).eq("id",id);
+if(b.dataset.tverify){const t=trends.find(x=>x.id===id);if(!t||!Array.isArray(t.verification_sources)||!t.verification_sources.length){alert("أضف مصادر تحقق موثقة أولًا.");return}q=db.from("trends").update({status:"active",verification_status:"verified",verified_at:new Date().toISOString(),reviewed_by:uid}).eq("id",id);}
 if(b.dataset.tpause)q=db.from("trends").update({status:"paused"}).eq("id",id);
 if(b.dataset.tdelete){if(!confirm("تأكيد حذف الترند؟"))return;q=db.from("trends").delete().eq("id",id)}
 const {error}=await q;if(error)alert("تعذر تنفيذ العملية: "+error.message);else await loadTrends();
