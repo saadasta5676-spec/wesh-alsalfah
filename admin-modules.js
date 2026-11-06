@@ -102,15 +102,16 @@ function init(){
 setupTrends();setupCategories();setupPages();setupSettings();setupHomepage();
 if(role==="admin")setupActivity();else panel("activity","سجل النشاط","هذا السجل متاح للمدير فقط.",'<div class="admin-panel">تحتاج صلاحية مدير لعرض سجل النشاط.</div>');
 }
-db.auth.onAuthStateChange(async(_event,session)=>{
-if(!session){role=null;return}
+async function initAfterAuth(){
 try{
-const [{data:{user},error:uerr},{data:assurance,error:aerr}]=await Promise.all([db.auth.getUser(),db.auth.mfa.getAuthenticatorAssuranceLevel()]);
-if(uerr||aerr||!user||assurance.currentLevel!=="aal2"){role=null;return}
+const {data:{user},error:uerr}=await db.auth.getUser();
+const {data:assurance,error:aerr}=await db.auth.mfa.getAuthenticatorAssuranceLevel();
+if(uerr||aerr||!user||assurance.currentLevel!=="aal2")return;
 const {data,error}=await db.from("profiles").select("role").eq("id",user.id).maybeSingle();
-if(error||!data||!["admin","editor"].includes(data.role)){role=null;return}
+if(error||!data||!["admin","editor"].includes(data.role))return;
 uid=user.id;role=data.role;init();
 }catch(e){console.error("Admin modules init failed",e)}
-});
-document.addEventListener("DOMContentLoaded",async()=>{const {data:{session}}=await db.auth.getSession();if(session){const {data:{user}}=await db.auth.getUser();const {data:a}=await db.auth.mfa.getAuthenticatorAssuranceLevel();if(user&&a?.currentLevel==="aal2"){const {data:p}=await db.from("profiles").select("role").eq("id",user.id).maybeSingle();if(p?.role){uid=user.id;role=p.role;init()}}}});
+}
+window.addEventListener("wesh:admin-ready",initAfterAuth);
+document.addEventListener("DOMContentLoaded",async()=>{const {data:{session}}=await db.auth.getSession();if(session)await initAfterAuth()});
 })();
