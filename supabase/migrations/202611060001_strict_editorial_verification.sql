@@ -1,5 +1,5 @@
--- Strict editorial verification gate. Apply only to an isolated preview Supabase project.
--- Existing published content is intentionally left unchanged.
+-- Strict editorial verification gate for articles and trends.
+-- Additive only: existing published rows are not rewritten.
 alter table public.articles
   add column if not exists verification_status text not null default 'unverified'
     check (verification_status in ('unverified','checking','verified','debunked')),
@@ -19,26 +19,35 @@ set search_path = ''
 as $$
 declare
   source_count integer;
+  primary_count integer;
+  should_block boolean := false;
 begin
-  if new.status = 'published' and (
-    new.verification_status <> 'verified'
-    or jsonb_typeof(new.verification_sources) <> 'array'
-  ) then
-    raise exception 'Publishing blocked: verification is incomplete';
+  if jsonb_typeof(new.verification_sources) <> 'array' then
+    raise exception 'Verification sources must be a JSON array';
   end if;
 
-  if new.status = 'published' then
-    select count(*) into source_count
-    from jsonb_array_elements(new.verification_sources) s
-    where s ? 'url' and s->>'url' ~ '^https?://' and coalesce(s->>'name','') <> '';
+  if tg_table_name = 'articles' then
+    should_block := new.status = 'published';
+  elsif tg_table_name = 'trends' then
+    should_block := new.status = 'active';
+  end if;
 
-    if source_count < 1 then
-      raise exception 'Publishing blocked: at least one documented primary source or two independent sources are required';
+  if should_block then
+    if new.verification_status <> 'verified' then
+      raise exception 'Publishing blocked: editorial verification is incomplete';
     end if;
 
-    if source_count < 2 and not coalesce((new.verification_sources->0->>'is_primary')::boolean, false) then
-      raise exception 'Publishing blocked: provide two independent sources or mark one documented primary source';
+    select count(*),
+           count(*) filter (where s->>'is_primary' = 'true')
+      into source_count, primary_count
+    from jsonb_array_elements(new.verification_sources) as s
+    where coalesce(s->>'url','') ~ '^https?://'
+      and coalesce(s->>'name','') <> '';
+
+    if not (source_count >= 2 or (source_count = 1 and primary_count = 1)) then
+      raise exception 'Publishing blocked: provide two documented independent sources or one documented primary source';
     end if;
+
     new.verified_at := coalesce(new.verified_at, now());
   end if;
   return new;
@@ -56,5 +65,3 @@ create trigger trends_editorial_verification_gate
 before insert or update of status, verification_status, verification_sources
 on public.trends
 for each row execute function private.enforce_editorial_verification();
-
--- Imported RSS and editor-created records remain unverified and unpublished by default.
