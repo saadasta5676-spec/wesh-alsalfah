@@ -9,3 +9,7 @@ body.dark{--ink:#f1f2f5;--muted:#a4a8b2;--paper:#111318;--card:#1b1e25;--line:#2
 /* Database/news availability notice */
 .data-status{margin:18px 0;padding:15px 18px;border:1px solid var(--line);border-right:4px solid var(--red);border-radius:12px;background:var(--card);color:var(--muted);font-size:13px;font-weight:600}
 .data-status[data-type="error"]{border-right-color:#c77922}
+
+
+/* Tiny discreet admin shortcut; authentication and MFA remain mandatory. */
+.quiet-admin-entry{position:fixed;z-index:1000;top:58px;right:7px;width:10px;height:10px;display:grid;place-items:center;opacity:.22;border-radius:50%;transition:opacity .2s,transform .2s;background:#777}.quiet-admin-entry span{width:3px;height:3px;border-radius:50%;background:#fff}.quiet-admin-entry:hover,.quiet-admin-entry:focus-visible{opacity:1;transform:scale(1.45);outline:2px solid var(--red);outline-offset:3px}
