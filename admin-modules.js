@@ -49,7 +49,7 @@ async function saveTrend(e){
 e.preventDefault();const id=$("#trend-id").value;
 const payload={name:$("#trend-name").value.trim(),slug:$("#trend-slug").value.trim().toLowerCase(),summary:$("#trend-summary").value.trim(),region:$("#trend-region").value,platform:$("#trend-platform").value,source_url:$("#trend-source").value.trim()||null,verification_sources:[],verification_status:"unverified"};
 if(!payload.name||!payload.slug){msg("trend-message","الاسم والرابط المختصر مطلوبان.");return}
-if(role==="admin"){payload.verification_status=$("#trend-verification").value;payload.status=$("#trend-status").value;payload.display_order=Number($("#trend-order").value)||0;payload.starts_at=$("#trend-start").value?new Date($("#trend-start").value).toISOString():null;payload.ends_at=$("#trend-end").value?new Date($("#trend-end").value).toISOString():null;}
+if(role==="admin"){payload.status=$("#trend-status").value;payload.display_order=Number($("#trend-order").value)||0;payload.starts_at=$("#trend-start").value?new Date($("#trend-start").value).toISOString():null;payload.ends_at=$("#trend-end").value?new Date($("#trend-end").value).toISOString():null;}
 else{payload.verification_status="unverified";payload.status="pending";payload.created_by=uid}
 msg("trend-message","جارٍ الحفظ…");
 const q=id?db.from("trends").update(payload).eq("id",id):db.from("trends").insert(payload);
