@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://saadasta5676-spec.github.io/wesh-alsalfah/sitemap.xml
+Sitemap: https://weshalsalfah.site/sitemap.xml
