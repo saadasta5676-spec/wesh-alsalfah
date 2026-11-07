@@ -1,23 +1,86 @@
 <!doctype html>
-<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#e32636"><title>لوحة التحكم | وش السالفة؟</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="admin.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
-<body class="admin-body"><header class="admin-header"><div class="container admin-header-inner"><a class="brand" href="index.html"><span class="brand-mark">؟</span><span class="brand-copy"><strong>وش <b>السالفة؟</b></strong><small>لوحة إدارة الأخبار</small></span></a><div><a class="button button-outline" href="index.html">عرض الموقع</a><button class="button button-primary hidden" id="logout-btn">تسجيل الخروج</button></div></div></header>
-<main class="container admin-main">
-<section id="setup-warning" class="admin-panel hidden"><h1>أكمل إعداد قاعدة البيانات أولاً</h1><p>أضف رابط Supabase ومفتاح anon في ملف config.js، ثم نفّذ ملف supabase/schema.sql في SQL Editor وأنشئ مستخدم المدير من Authentication.</p><a class="button button-primary" href="README.md">افتح دليل الإعداد</a></section>
-<section id="login-panel" class="admin-panel auth-panel hidden"><span class="eyebrow">منطقة الإدارة</span><h1>تسجيل الدخول</h1><p>هذه اللوحة مخصصة لمحرري موقع وش السالفة؟</p><form id="login-form"><label>البريد الإلكتروني<input type="email" id="email" required autocomplete="username"></label><label>كلمة المرور<input type="password" id="password" required autocomplete="current-password"></label><button class="button button-primary button-full" type="submit">دخول لوحة التحكم</button><p class="form-message" id="login-message"></p></form></section>
-<section id="dashboard" class="hidden">
-<div class="admin-title-row"><div><span class="eyebrow">إدارة المحتوى</span><h1>لوحة التحكم</h1><p>راجع الأخبار الواردة، حرّرها، ثم انشر المناسب منها.</p></div><button class="button button-primary" id="new-article">＋ خبر جديد</button></div>
-<div class="stats-grid"><div class="stat-card"><span>بانتظار المراجعة</span><strong id="pending-count">0</strong></div><div class="stat-card"><span>منشور</span><strong id="published-count">0</strong></div><div class="stat-card"><span>مسودات / مرفوض</span><strong id="other-count">0</strong></div></div>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#e32636"><meta name="robots" content="noindex,nofollow">
+<title>لوحة التحكم | وش السالفة؟</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="admin.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+</head>
+<body class="admin-body">
+<header class="admin-header"><div class="admin-header-inner">
+<a class="brand" href="index.html"><span class="brand-mark">؟</span><span class="brand-copy"><strong>وش <b>السالفة؟</b></strong><small>مركز إدارة الموقع</small></span></a>
+<div class="admin-header-actions"><a class="button button-outline" href="index.html">عرض الموقع ↗</a></div>
+</div></header>
+<main class="admin-main">
+<section id="setup-warning" class="admin-panel hidden"><h1>أكمل إعداد قاعدة البيانات أولاً</h1><p>أضف رابط Supabase ومفتاح anon في ملف config.js، ثم راجع دليل الإعداد.</p><a class="button button-primary" href="README.md">افتح دليل الإعداد</a></section>
+<section id="login-panel" class="admin-panel auth-panel">
+<h1>دخول الإدارة</h1><p>الدخول مخصص لحسابات فريق التحرير المعتمدة.</p>
+<form id="login-form"><label>البريد الإلكتروني<input id="login-email" type="email" autocomplete="username" required></label><label>كلمة المرور<input id="login-password" type="password" autocomplete="current-password" required></label><button class="button button-primary" type="submit">دخول آمن</button></form>
+<div id="auth-message" class="form-message" role="status" aria-live="polite"></div>
+<section id="mfa-enroll" class="hidden"><h2>تفعيل المصادقة الثنائية</h2><p>امسح رمز QR باستخدام تطبيق المصادقة، ثم أدخل الرمز المكوّن من 6 أرقام.</p><img id="mfa-qr" alt="رمز إعداد المصادقة الثنائية" style="display:block;max-width:220px;margin:16px auto;background:white;padding:10px"><label>مفتاح يدوي عند تعذّر مسح QR<input id="mfa-secret" readonly></label><label>رمز التحقق<input id="mfa-enroll-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label><button id="verify-enroll" class="button button-primary" type="button">تحقق وفعّل MFA</button></section>
+<section id="mfa-challenge" class="hidden"><h2>تحقق المصادقة الثنائية</h2><p>أدخل الرمز الحالي من تطبيق المصادقة للمتابعة.</p><label>رمز التحقق<input id="mfa-login-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label><button id="verify-login" class="button button-primary" type="button">تحقق</button></section>
+<button id="logout-button" class="button button-outline hidden" type="button">تسجيل الخروج</button>
+</section>
+<section id="dashboard" class="admin-shell">
+<div class="admin-workspace" style="grid-column:1/-1"><div class="admin-panel" role="status" style="border-right:4px solid var(--red);margin-bottom:18px"><h2>المعاينة مثبتة — الإدارة مقفلة مؤقتًا</h2><p>واجهة لوحة التحكم جاهزة للمعاينة. تم إيقاف تسجيل الدخول وعمليات القراءة والتعديل والنشر والحذف إلى أن يكتمل نظام أدوار المدير والمحررين.</p></div></div>
+<aside class="admin-sidebar">
+<div class="sidebar-caption">القائمة الرئيسية</div>
+<button class="sidebar-link active" data-view="overview"><span>⌂</span> نظرة عامة</button>
+<button class="sidebar-link" data-view="articles"><span>▤</span> إدارة الأخبار <small id="nav-pending-count">0</small></button>
+<div class="sidebar-caption">إدارة المحتوى</div>
+<button class="sidebar-link" data-view="trends"><span>#</span> الترندات</button>
+<button class="sidebar-link" data-view="categories"><span>▦</span> الأقسام والتصنيفات</button>
+<button class="sidebar-link" data-view="homepage"><span>▣</span> الصفحة الرئيسية</button>
+<button class="sidebar-link" data-view="pages"><span>▧</span> الصفحات الثابتة</button>
+<div class="sidebar-caption">إدارة الموقع</div>
+<button class="sidebar-link" data-view="settings"><span>⚙</span> الإعدادات و SEO</button>
+<button class="sidebar-link" data-view="users"><span>♙</span> المستخدمون والصلاحيات</button>
+<button class="sidebar-link" data-view="activity"><span>◷</span> سجل النشاط</button>
+<button class="sidebar-link" data-view="ads"><span>▤</span> الإعلانات والربح</button>
+<div class="sidebar-note"><b>وش السالفة؟</b><span>مركز إدارة المحتوى</span></div>
+</aside>
+<div class="admin-workspace">
+<section class="admin-view active hidden" id="view-overview">
+<div class="admin-title-row"><div><span class="eyebrow">مرحبًا بك</span><h1>نظرة عامة</h1><p>ملخص سريع لحالة المحتوى في موقعك.</p></div><button class="button button-primary" id="new-article">＋ خبر جديد</button></div>
+<div class="stats-grid">
+<div class="stat-card"><span>بانتظار المراجعة</span><strong id="pending-count">0</strong><small>أخبار تحتاج مراجعتك</small></div>
+<div class="stat-card"><span>الأخبار المنشورة</span><strong id="published-count">0</strong><small>إجمالي الأخبار المنشورة ضمن القائمة المحمّلة</small></div>
+<div class="stat-card"><span>المسودات والمرفوضة</span><strong id="other-count">0</strong><small>محتوى غير منشور</small></div>
+</div>
+<div class="overview-lower">
+<div class="admin-panel overview-panel"><div class="panel-heading"><div><h2>آخر الأخبار</h2><p>أحدث العناصر المسجلة في قاعدة البيانات</p></div><button class="text-action" data-go="articles">عرض كل الأخبار ←</button></div><div id="recent-list" class="recent-list"></div></div>
+<div class="admin-panel overview-panel"><h2>اختصارات سريعة</h2><div class="quick-actions"><button data-go="articles">＋ إضافة خبر جديد</button><button data-go="trends"># إدارة الترندات</button><button data-go="categories">▦ إدارة الأقسام</button><button data-go="pages">▧ الصفحات الثابتة</button></div><p class="feature-note">الأقسام التي لم تُربط بقاعدة البيانات بعد ستظهر كمساحات تجهيز، ولن تحفظ بيانات وهمية.</p></div>
+</div>
+</section>
+<section class="admin-view" id="view-articles">
+<div class="admin-title-row"><div><span class="eyebrow">غرفة الأخبار</span><h1>إدارة الأخبار</h1><p>ابحث في الأخبار وراجع حالتها وعدّل محتواها.</p></div><button class="button button-primary" id="new-article-secondary">＋ خبر جديد</button></div>
+<div class="stats-grid compact-stats"><div class="stat-card"><span>بانتظار المراجعة</span><strong id="articles-pending-count">0</strong></div><div class="stat-card"><span>منشور</span><strong id="articles-published-count">0</strong></div><div class="stat-card"><span>مسودة / مرفوض</span><strong id="articles-other-count">0</strong></div></div>
+<div class="article-toolbar"><label class="search-field">⌕ <input id="article-search" type="search" placeholder="ابحث بعنوان الخبر أو المصدر..."></label><select id="category-filter" aria-label="تصفية حسب القسم"><option value="">كل الأقسام</option><option>عاجل</option><option>السعودية</option><option>ترند</option><option>العالم</option><option>تقنية</option><option>رياضة</option><option>ترفيه</option><option>اقتصاد</option><option>سيارات</option><option>وظائف</option><option>تعليم</option><option>سياحة</option><option>منوعات</option></select></div>
 <div class="admin-tabs"><button class="active" data-status="pending">بانتظار المراجعة</button><button data-status="published">المنشورة</button><button data-status="draft">المسودات</button><button data-status="rejected">المرفوضة</button><button data-status="all">الكل</button></div>
 <div id="admin-list" class="admin-list"></div>
 </section>
+<section class="admin-view" id="view-trends"><div class="admin-title-row"><div><span class="eyebrow">المحتوى الرائج</span><h1>الترندات</h1><p>تصميم قائمة الترندات وحقولها قبل ربط الحفظ الآمن.</p></div></div><div class="admin-panel"><h2>حقول الترند المعتمدة للتصميم</h2><div class="stats-grid compact-stats"><div class="stat-card"><span>الاسم والوصف</span><small>اسم الترند، رابط مختصر، ملخص محايد</small></div><div class="stat-card"><span>النطاق والمنصة</span><small>السعودية، الخليج، العالم العربي، عالمي — والمنصة</small></div><div class="stat-card"><span>التحقق</span><small>غير متحقق، قيد التحقق، موثق، تم نفيه</small></div></div><h3>قوائم العمل</h3><div class="admin-tabs"><button disabled>الكل</button><button disabled>قيد التحقق</button><button disabled>موثقة</button><button disabled>نشطة</button><button disabled>موقوفة</button><button disabled>منتهية</button></div><p class="feature-note">الحقول والقوائم هنا مواصفة واجهة فقط. لم يُنشأ جدول للترندات ولم تُفعّل أزرار الحفظ أو النشر قبل اعتماد RLS واختبار MFA/AAL2.</p><a class="text-action" href="docs/content-management-structure.md">عرض مواصفة إدارة المحتوى ←</a></div></section>
+<section class="admin-view" id="view-categories"><div class="admin-title-row"><div><span class="eyebrow">تنظيم المحتوى</span><h1>الأقسام والتصنيفات</h1><p>شجرة الأقسام الرئيسية والتصنيفات الفرعية المقترحة.</p></div></div><div class="admin-panel"><div class="quick-actions"><div>السعودية <small>المناطق والمدن، القرارات والخدمات، الاقتصاد والمشاريع، التعليم والوظائف، المجتمع والفعاليات</small></div><div>العالم <small>السياسة، الاقتصاد العالمي، الأحداث العاجلة، العلوم والاكتشافات</small></div><div>الترندات <small>السعودية، الخليج والعالم العربي، عالمي، تحقق من المتداول</small></div><div>التقنية والذكاء الاصطناعي <small>الذكاء الاصطناعي، الأجهزة، التطبيقات، الأمن والخصوصية، الشركات</small></div><div>الرياضة <small>الدوري السعودي، المنتخب، كرة القدم العالمية، الانتقالات، رياضات أخرى</small></div><div>الترفيه والفن <small>الأفلام والمسلسلات، الفن، الفعاليات، الألعاب والمحتوى الرقمي</small></div><div>الاقتصاد والأعمال <small>الأسواق، الشركات، الاستثمار، التجارة وريادة الأعمال</small></div><div>السيارات والنقل <small>أخبار السيارات، المراجعات، الأسعار، السلامة والكهربائية</small></div><div>الوظائف وسوق العمل <small>وظائف القطاعين، التدريب، المهارات وأنظمة العمل</small></div><div>التعليم <small>التعليم العام، الجامعات، الابتعاث، النتائج</small></div><div>السياحة والسفر <small>السياحة السعودية والعالمية، المواسم، الطيران والضيافة</small></div><div>منوعات وحياة <small>الطعام، الصحة والتوعية، القصص والتجارب</small></div><div>وش السالفة؟ <small>خلفية حدث، شرح قرار، سؤال وجواب، تحقق وتصحيح</small></div></div><p class="feature-note">«عاجل» و«مميز» وسوم تحريرية وليست أقسامًا. لن نسمح بحذف قسم مرتبط بأخبار قبل نقلها. إدارة البيانات الفعلية تنتظر اعتماد جدول الأقسام وسياسات RLS.</p><a class="text-action" href="docs/content-management-structure.md">عرض شجرة الأقسام والحقول كاملة ←</a></div></section>
+<section class="admin-view" id="view-homepage"><div class="admin-title-row"><div><span class="eyebrow">واجهة الزوار</span><h1>الصفحة الرئيسية</h1><p>التحكم بترتيب وحدات الصفحة والأخبار المميزة.</p></div></div><div class="admin-panel coming-soon"><span>▣</span><h2>محرر الصفحة الرئيسية قيد التجهيز</h2><p>ستتمكن لاحقًا من ترتيب العاجل والخبر الرئيسي والأخبار المميزة والترندات مع معاينة قبل الحفظ.</p></div></section>
+<section class="admin-view" id="view-pages"><div class="admin-title-row"><div><span class="eyebrow">محتوى الموقع</span><h1>الصفحات الثابتة</h1><p>من نحن، اتصل بنا، سياسة الخصوصية والشروط.</p></div></div><div class="admin-panel coming-soon"><span>▧</span><h2>محرر الصفحات قيد التجهيز</h2><p>سنجهّز صفحات الثقة الأساسية ونضيف تحريرها ونشرها من لوحة التحكم.</p></div></section>
+<section class="admin-view" id="view-settings"><div class="admin-title-row"><div><span class="eyebrow">هوية الموقع</span><h1>الإعدادات و SEO</h1><p>بيانات الموقع والظهور في محركات البحث.</p></div></div><div class="admin-panel coming-soon"><span>⚙</span><h2>إعدادات الموقع قيد التجهيز</h2><p>اسم الموقع والوصف وروابط التواصل وبيانات SEO ستُربط بمصدر إعدادات آمن.</p></div></section>
+<section class="admin-view" id="view-users"><div class="admin-title-row"><div><span class="eyebrow">الفريق</span><h1>المستخدمون والصلاحيات</h1><p>إدارة المديرين والمحررين.</p></div></div><div class="admin-panel coming-soon"><span>♙</span><h2>إدارة الصلاحيات غير مفعّلة بعد</h2><p>لن تظهر إدارة الحسابات أو تتاح تغييرات الأدوار قبل مراجعة وتطبيق سياسات RLS بشكل آمن.</p></div></section>
+<section class="admin-view" id="view-activity"><div class="admin-title-row"><div><span class="eyebrow">المتابعة</span><h1>سجل النشاط</h1><p>تتبع عمليات النشر والتعديل وإدارة الموقع.</p></div></div><div class="admin-panel coming-soon"><span>◷</span><h2>سجل النشاط قيد التجهيز</h2><p>سنضيف سجلًا موثوقًا يسجل هوية المنفذ والعملية والتوقيت.</p></div></section>
+<section class="admin-view" id="view-ads"><div class="admin-title-row"><div><span class="eyebrow">مصادر الدخل</span><h1>الإعلانات والربح</h1><p>تجهيز مواضع الإعلانات للمستقبل.</p></div></div><div class="admin-panel coming-soon"><span>▤</span><h2>إدارة الإعلانات مرحلة لاحقة</h2><p>لن نضيف أكواد إعلانية قبل استكمال المحتوى وصفحات السياسات ومراجعة متطلبات الشبكة الإعلانية.</p></div></section>
+</div></section>
 </main>
 <dialog id="edit-dialog" class="edit-dialog"><form id="article-form" class="edit-form"><div class="dialog-heading"><h2 id="form-heading">إضافة خبر</h2><button type="button" id="close-editor" class="icon-button">×</button></div><input type="hidden" id="article-id">
 <label>عنوان الخبر<input id="article-title" required maxlength="180"></label>
-<div class="form-row"><label>القسم<select id="article-category"><option>عاجل</option><option>السعودية</option><option>ترند</option><option>العالم</option><option>تقنية</option><option>رياضة</option><option>ترفيه</option><option>اقتصاد</option><option>منوعات</option></select></label><label>اسم الكاتب<input id="article-author" value="فريق التحرير"></label></div>
+<div class="form-row"><label>القسم<select id="article-category"><option>عاجل</option><option>السعودية</option><option>ترند</option><option>العالم</option><option>تقنية</option><option>رياضة</option><option>ترفيه</option><option>اقتصاد</option><option>سيارات</option><option>وظائف</option><option>تعليم</option><option>سياحة</option><option>منوعات</option></select></label><label>اسم الكاتب<input id="article-author" value="فريق التحرير"></label></div>
 <label>رابط الصورة<input id="article-image" type="url" placeholder="https://..."></label>
 <label>ملخص الخبر<textarea id="article-excerpt" rows="3"></textarea></label>
 <label>نص الخبر<textarea id="article-body" rows="8" required></textarea></label>
-<label class="check-label"><input id="article-featured" type="checkbox"> عرض في الواجهة الرئيسية</label>
-<div class="editor-actions"><button class="button button-outline" type="button" id="save-draft">حفظ كمسودة</button><button class="button button-primary" type="submit">حفظ ونشر</button></div><p class="form-message" id="editor-message"></p></form></dialog>
-<script src="config.js"></script><script src="admin.js"></script></body></html>
+<label>حالة التحقق (للمدير فقط)<select id="article-verification"><option value="unverified">غير متحقق</option><option value="checking">قيد التحقق</option><option value="verified">موثق</option><option value="debunked">تم نفيه</option></select></label>
+<label>مصادر التحقق بصيغة JSON (كل مصدر: name وurl وis_primary)</label><textarea id="article-sources" rows="5" placeholder='[{"name":"المصدر الرسمي","url":"https://...","is_primary":true}]'></textarea>
+<label class="check-label"><input id="article-featured" type="checkbox"> طلب تمييز الخبر عند النشر</label>
+<div class="editor-actions"><button class="button button-outline" type="button" id="save-draft">حفظ كمسودة</button><button class="button button-primary" type="submit">إرسال للمراجعة</button></div><p class="form-message" id="editor-message"></p></form></dialog>
+<script src="config.js"></script>
+<script src="admin.js"></script><script src="admin-modules.js"></script>
+</body></html>
